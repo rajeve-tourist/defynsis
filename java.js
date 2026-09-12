@@ -1,4 +1,37 @@
 /* ============================================================
+   GLOBAL TELEGRAM SOS SENDER
+   ============================================================ */
+async function sendTelegramSOSAlert(coords) {
+  const BOT_TOKEN = '8815243876:AAF0_KeHSLDn3JvBk4B9nEYFcKwLfFOQ2SQ';
+  const CHAT_ID = localStorage.getItem('defensys_emergency_chat_id') || '1871645339';
+
+  const lat = coords?.latitude || 0;
+  const lon = coords?.longitude || 0;
+  const mapLink = (lat && lon) ? `https://maps.google.com/?q=${lat},${lon}` : 'Location unavailable';
+
+  const emergencyMessage = 
+    `🚨 *DEFENSYS EMERGENCY ALERT* 🚨\n\n` +
+    `An SOS trigger was detected!\n` +
+    `📍 *Live Location:* ${mapLink}\n` +
+    `⏰ *Timestamp:* ${new Date().toLocaleString()}`;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: emergencyMessage,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await res.json();
+    console.log('[DefenSys] Telegram Alert Sent:', data.ok);
+    alert(data.ok ? '🚨 Telegram Emergency SOS Sent!' : 'Telegram Error: ' + data.description);
+  } catch (err) {
+    console.error('[DefenSys] Telegram Error:', err);
+  }
+}/* ============================================================
    DEFENSYS — java.js
    Live Voice Code Word + Secret Shake Trigger
    ============================================================
