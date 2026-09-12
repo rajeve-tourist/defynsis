@@ -580,7 +580,7 @@
 
             try {
               speechRecognition.stop();
-            } catch (error) {}
+            } catch (error) {console.warn('[DefenSys] Speech recognition stop error:', error);}
 
 
             /*
