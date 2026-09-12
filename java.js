@@ -1469,3 +1469,32 @@ async function sendTelegramSOSAlert(botToken, chatId, coords) {
   }
 
 })();
+/* ============================================================
+   TELEGRAM CHAT ID LOCALSTORAGE HANDLER
+   ============================================================ */
+
+// Function triggered when clicking the "Save" button
+function saveUserEmergencyContact() {
+  const inputField = document.getElementById('chatIdInput');
+  if (!inputField) return;
+
+  const chatId = inputField.value.trim();
+  if (!chatId) {
+    alert('Please enter a valid Telegram Chat ID.');
+    return;
+  }
+
+  // Save to browser localStorage
+  localStorage.setItem('defensys_emergency_chat_id', chatId);
+  alert('Emergency contact saved successfully!');
+}
+
+// Automatically load existing Chat ID into input field when DOM loads
+window.addEventListener('DOMContentLoaded', () => {
+  const savedChatId = localStorage.getItem('defensys_emergency_chat_id');
+  const inputField = document.getElementById('chatIdInput');
+  
+  if (savedChatId && inputField) {
+    inputField.value = savedChatId;
+  }
+});
