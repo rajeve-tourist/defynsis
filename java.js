@@ -534,7 +534,42 @@
              */
 
             updateDistress('critical');
+/* ============================================================
+     1. DISPATCH TELEGRAM SOS ALERT (VOICE TRIGGER)
+     ============================================================ */
+  const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'; // Replace with your actual Bot Token
+  const savedChatId = localStorage.getItem('defensys_emergency_chat_id');
 
+  if (savedChatId) {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          sendTelegramSOSAlert(BOT_TOKEN, savedChatId, position.coords);
+        },
+        (error) => {
+          console.error('[DefenSys] Geolocation error:', error);
+          // Fallback alert without precise GPS if location is denied
+          sendTelegramSOSAlert(BOT_TOKEN, savedChatId, { latitude: 0, longitude: 0 });
+        }
+      );
+    }
+  } else {
+    console.warn('[DefenSys] No emergency contact Chat ID found in localStorage.');
+  }
+
+  /* Stop current recognition session */
+  speechRecognitionEnabled = false;
+  try {
+    speechRecognition.stop();
+  } catch (error) {}
+
+  /* Trigger DefenSys emergency */
+  setTimeout(function () {
+    if (typeof window.simulate === 'function') {
+      window.simulate('codeword');
+    }
+  }, 100);
+}
 
             /*
              * Stop current recognition session.
@@ -685,7 +720,33 @@
 
           }
 
+/* ============================================================
+   TELEGRAM SOS ALERT FUNCTION
+   ============================================================ */
+async function sendTelegramSOSAlert(botToken, chatId, coords) {
+  const mapLink = `https://maps.google.com/?q=${coords.latitude},${coords.longitude}`;
+  const emergencyMessage = 
+    `🚨 *EMERGENCY SOS ALERT* 🚨\n\n` +
+    `An SOS trigger was detected in DefenSys!\n` +
+    `📍 *Live Location:* [View on Google Maps](${mapLink})\n` +
+    `⏰ *Timestamp:* ${new Date().toLocaleString()}`;
 
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: emergencyMessage,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await response.json();
+    console.log('[DefenSys] Telegram Alert Status:', data.ok ? 'Sent' : data.description);
+  } catch (err) {
+    console.error('[DefenSys] Failed to send Telegram SOS:', err);
+  }
+}
           /* ----------------------------------------------------
              OTHER ERRORS
              ---------------------------------------------------- */
@@ -1049,7 +1110,22 @@
 
 
       updateDistress('critical');
+/* ============================================================
+     2. DISPATCH TELEGRAM SOS ALERT (GESTURE TRIGGER)
+     ============================================================ */
+  const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'; // Replace with your actual Bot Token
+  const savedChatId = localStorage.getItem('defensys_emergency_chat_id');
 
+  if (savedChatId && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      sendTelegramSOSAlert(BOT_TOKEN, savedChatId, position.coords);
+    });
+  }
+
+  if (typeof window.simulate === 'function') {
+    window.simulate('gesture');
+  }
+}
 
       if (
         typeof window.simulate ===
