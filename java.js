@@ -537,7 +537,7 @@
 /* ============================================================
      1. DISPATCH TELEGRAM SOS ALERT (VOICE TRIGGER)
      ============================================================ */
-  const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'; // Replace with your actual Bot Token
+  const BOT_TOKEN = '8815243876:AAF0_KeHSLDn3JvBk4B9nEYfcKwLfFOQ2SQ'; // Replace with your actual Bot Token
   const savedChatId = localStorage.getItem('defensys_emergency_chat_id');
 
   if (savedChatId) {
@@ -1113,7 +1113,7 @@ async function sendTelegramSOSAlert(botToken, chatId, coords) {
 /* ============================================================
      2. DISPATCH TELEGRAM SOS ALERT (GESTURE TRIGGER)
      ============================================================ */
-  const BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'; // Replace with your actual Bot Token
+  const BOT_TOKEN = '8815243876:AAF0_KeHSLDn3JvBk4B9nEYfcKwLfFOQ2SQ'; // Replace with your actual Bot Token
   const savedChatId = localStorage.getItem('defensys_emergency_chat_id');
 
   if (savedChatId && navigator.geolocation) {
