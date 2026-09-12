@@ -352,6 +352,7 @@
     collection,
     addDoc,
     doc,
+    setDoc,
     updateDoc,
     serverTimestamp
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -712,6 +713,25 @@
       return false;
     }
   };
+
+  // Called from saveUserEmergencyContact() in the plain <script> below.
+  // Persists the Telegram chat ID to the signed-in user's profile doc so
+  // it survives across devices; returns false (not thrown) when there is
+  // no db connection or no signed-in user, so the caller can fall back to
+  // the localStorage-only save it already does.
+  window.saveDefenSysTelegramChatId = async (chatId) => {
+    if (!db || !currentAuthUser) return false;
+    try {
+      await setDoc(doc(db, 'users', currentAuthUser.uid), {
+        telegramChatId: chatId,
+        telegramChatIdSavedAt: serverTimestamp()
+      }, { merge: true });
+      return true;
+    } catch (error) {
+      console.error('[DefenSys] Failed to save Telegram chat ID:', error);
+      return false;
+    }
+  };
 </script>
 
 <script>
@@ -733,7 +753,7 @@ let state = {
   gesture: { trained: true, samples: 5, lastTriggered: null },
   codeWord: { phrase: 'AEGIS', lastTriggered: null },
   triggerType: 'SOS',
-  profile: { name: 'Aditi Sharma', initials: 'AS', age: 22, blood: 'O+', note: 'No known allergies', contacts: 3, email: null },
+  profile: { name: 'Aditi Sharma', initials: 'AS', age: 22, blood: 'O+', note: 'No known allergies', contacts: 3, email: null, telegramChatId: (typeof localStorage !== 'undefined' && localStorage.getItem('defensysTelegramChatId')) || null },
   currentIncidentId: null,
   recording: { status: 'idle', mode: null, mediaRecorder: null, stream: null, chunks: [], startedAt: null, lastClipUrl: null, lastClipBase64: null, lastClipDuration: null },
   mediaLog: [],
@@ -750,34 +770,47 @@ const RISK = {
   high:     {label:'High',     color:'#FF7A45', dim:'#FFEDE4', pct:0.74, headline:'Distress signals rising', sub:'Multiple indicators point to possible danger. Emergency mode is activating.'},
   critical: {label:'Critical', color:'#FF4757', dim:'#FFE7E9', pct:1.0,  headline:'Active emergency', sub:'High-confidence distress detected. Contacts and authorities are being alerted.'}
 };
-<!-- DefenSys Emergency Contact Setup Card -->
-<div class="statuscard" style="flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 12px;">
-  <div style="display: flex; align-items: center; gap: 10px;">
-    <div class="statusicon" style="background: var(--blue-dim); color: var(--blue);">
-      <i class="ti ti-brand-telegram"></i>
+// This markup used to be pasted here as raw HTML, directly inside a
+// plain <script> block. A browser cannot parse "<div ...>" as a JS
+// statement, so the parser hit the leading "<" and threw
+// "Uncaught SyntaxError: Unexpected token '<'" at this exact line,
+// which aborted this entire <script> block (nothing below it -
+// tickVitals, render, event listeners, etc. - ever ran).
+// Fixed by turning it into a template-string-returning function that
+// is invoked from renderSettings() further down, and by implementing
+// the previously-missing saveUserEmergencyContact() it calls.
+function renderEmergencyContactCard(){
+  const saved = state.profile.telegramChatId;
+  return `
+  <div class="statuscard" style="flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="statusicon" style="background: var(--blue-dim); color: var(--blue);">
+        <i class="ti ti-brand-telegram"></i>
+      </div>
+      <div>
+        <div class="big">Emergency Telegram Contact</div>
+        <div class="sub">${saved ? 'Chat ID saved &middot; SOS alerts will be sent here' : 'Receive direct SOS alerts with live location'}</div>
+      </div>
     </div>
-    <div>
-      <div class="big">Emergency Telegram Contact</div>
-      <div class="sub">Receive direct SOS alerts with live location</div>
-    </div>
-  </div>
 
-  <div style="width: 100%; display: flex; gap: 8px; margin-top: 6px;">
-    <input 
-      type="text" 
-      id="chatIdInput" 
-      placeholder="Enter Telegram Chat ID (e.g. 123456789)" 
-      style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 12px; outline: none;"
-    />
-    <button 
-      id="saveChatIdBtn" 
-      onclick="saveUserEmergencyContact()" 
-      style="padding: 10px 16px; border-radius: 12px; border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 12px; cursor: pointer;"
-    >
-      Save
-    </button>
-  </div>
-</div>
+    <div style="width: 100%; display: flex; gap: 8px; margin-top: 6px;">
+      <input
+        type="text"
+        id="chatIdInput"
+        value="${saved || ''}"
+        placeholder="Enter Telegram Chat ID (e.g. 123456789)"
+        style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 12px; outline: none;"
+      />
+      <button
+        id="saveChatIdBtn"
+        onclick="saveUserEmergencyContact()"
+        style="padding: 10px 16px; border-radius: 12px; border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 12px; cursor: pointer;"
+      >
+        Save
+      </button>
+    </div>
+  </div>`;
+}
 function tickVitals(){
   const v = state.vitals;
   const band = state.emergency === 'active' ? [95,140] : state.emergency === 'grace' ? [85,120] : [64,92];
@@ -877,6 +910,38 @@ function writeCurrentSafetyEvent(level){
       lon: location.lon
     });
   }
+}
+
+async function saveUserEmergencyContact(){
+  const input = document.getElementById('chatIdInput');
+  const btn = document.getElementById('saveChatIdBtn');
+  const chatId = input ? input.value.trim() : '';
+
+  if(!/^-?\d+$/.test(chatId)){
+    showToast('⚠️', 'Invalid Chat ID', '<div>Enter the numeric Telegram Chat ID (e.g. 123456789), not a username.</div>');
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  let syncedToAccount = false;
+  if(typeof window.saveDefenSysTelegramChatId === 'function'){
+    syncedToAccount = await window.saveDefenSysTelegramChatId(chatId);
+  }
+  if(typeof localStorage !== 'undefined'){
+    localStorage.setItem('defensysTelegramChatId', chatId);
+  }
+  state.profile.telegramChatId = chatId;
+
+  if(btn){ btn.disabled = false; btn.textContent = 'Save'; }
+  showToast(
+    '✅',
+    'Telegram contact saved',
+    syncedToAccount
+      ? '<div>SOS alerts with live location will be sent to this chat.</div>'
+      : '<div>Saved on this device. Sign in to sync it to your account too.</div>'
+  );
+  render();
 }
 
 function triggerCodeWordManually() {
@@ -1884,6 +1949,7 @@ function renderSettings(){
       <div class="row"><div class="ic">❤️</div><div><div class="name">Heart rate baseline</div><div class="meta">Calibrated</div></div></div>
     </div>
     ${renderWatchCard()}
+    ${renderEmergencyContactCard()}
     <div class="eyebrow">Communication status</div>
     <div class="list">
       <div class="row"><div class="ic" style="background:var(--low-dim); color:var(--low);">🟢</div><div><div class="name">Internet</div><div class="meta">Primary channel</div></div><span class="badge notified">Active</span></div>
