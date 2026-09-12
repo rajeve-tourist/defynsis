@@ -1498,3 +1498,36 @@ window.addEventListener('DOMContentLoaded', () => {
     inputField.value = savedChatId;
   }
 });
+/* ============================================================
+   TELEGRAM SOS ALERT SENDER FUNCTION
+   ============================================================ */
+async function sendTelegramSOSAlert(botToken, chatId, coords) {
+  const targetChatId = chatId || localStorage.getItem('defensys_emergency_chat_id') || '1871645339';
+  const targetToken = botToken || '8815243876:AAF0_KeHSLDn3JvBk4B9nEYFcKwLfFOQ2SQ';
+
+  const lat = coords?.latitude || 0;
+  const lon = coords?.longitude || 0;
+  const mapLink = lat && lon ? `https://maps.google.com/?q=${lat},${lon}` : 'Location unavailable';
+
+  const emergencyMessage = 
+    `🚨 *DEFENSYS EMERGENCY ALERT* 🚨\n\n` +
+    `An SOS trigger was detected!\n` +
+    `📍 *Live Location:* ${mapLink}\n` +
+    `⏰ *Timestamp:* ${new Date().toLocaleString()}`;
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${targetToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: targetChatId,
+        text: emergencyMessage,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await response.json();
+    console.log('[DefenSys] Telegram Alert Sent:', data.ok);
+  } catch (err) {
+    console.error('[DefenSys] Telegram Error:', err);
+  }
+}
