@@ -750,7 +750,34 @@ const RISK = {
   high:     {label:'High',     color:'#FF7A45', dim:'#FFEDE4', pct:0.74, headline:'Distress signals rising', sub:'Multiple indicators point to possible danger. Emergency mode is activating.'},
   critical: {label:'Critical', color:'#FF4757', dim:'#FFE7E9', pct:1.0,  headline:'Active emergency', sub:'High-confidence distress detected. Contacts and authorities are being alerted.'}
 };
+<!-- DefenSys Emergency Contact Setup Card -->
+<div class="statuscard" style="flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 12px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <div class="statusicon" style="background: var(--blue-dim); color: var(--blue);">
+      <i class="ti ti-brand-telegram"></i>
+    </div>
+    <div>
+      <div class="big">Emergency Telegram Contact</div>
+      <div class="sub">Receive direct SOS alerts with live location</div>
+    </div>
+  </div>
 
+  <div style="width: 100%; display: flex; gap: 8px; margin-top: 6px;">
+    <input 
+      type="text" 
+      id="chatIdInput" 
+      placeholder="Enter Telegram Chat ID (e.g. 123456789)" 
+      style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 12px; outline: none;"
+    />
+    <button 
+      id="saveChatIdBtn" 
+      onclick="saveUserEmergencyContact()" 
+      style="padding: 10px 16px; border-radius: 12px; border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 12px; cursor: pointer;"
+    >
+      Save
+    </button>
+  </div>
+</div>
 function tickVitals(){
   const v = state.vitals;
   const band = state.emergency === 'active' ? [95,140] : state.emergency === 'grace' ? [85,120] : [64,92];
